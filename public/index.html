@@ -1,0 +1,88 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fraluz - Sistema de Voluntariado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #1e293b;
+    }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    .logo-img {
+      transition: transform 0.3s ease;
+    }
+    .logo-img:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+  <!-- LOGO E CABEÇALHO -->
+  <div class="flex flex-col items-center mb-8">
+    <div class="w-36 h-36 rounded-full overflow-hidden shadow-lg mb-4">
+      <img 
+        src="https://i.imgur.com/SXnHQlr.png" 
+        alt="Logo Fraluz" 
+        class="w-full h-full object-cover logo-img"
+      />
+    </div>
+    <h1 class="text-4xl font-bold text-blue-800 mb-2 text-center">
+      Sistema de Voluntariado Fraluz
+    </h1>
+    <p class="text-gray-600 text-center text-lg">
+      Gerencie voluntários, atividades, cursos e registros de ponto
+    </p>
+  </div>
+
+  <!-- MENU DE OPÇÕES -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+    
+    <a href="/cadastro.html" class="card text-center hover:bg-blue-50">
+      <h2 class="text-2xl font-semibold text-blue-700 mb-2">👤 Cadastro de Voluntários</h2>
+      <p class="text-gray-500">Adicione novos voluntários e veja a lista de cadastrados.</p>
+    </a>
+
+    <a href="/atividades.html" class="card text-center hover:bg-blue-50">
+      <h2 class="text-2xl font-semibold text-blue-700 mb-2">📅 Atividades</h2>
+      <p class="text-gray-500">Crie e visualize as atividades programadas.</p>
+    </a>
+
+    <a href="/cursos.html" class="card text-center hover:bg-blue-50">
+      <h2 class="text-2xl font-semibold text-blue-700 mb-2">🎓 Cadastrar Curso</h2>
+      <p class="text-gray-500">Adicione novos cursos e gerencie os voluntários participantes.</p>
+    </a>
+
+    <a href="/ponto.html" class="card text-center hover:bg-blue-50">
+      <h2 class="text-2xl font-semibold text-blue-700 mb-2">⏰ Registro de Ponto</h2>
+      <p class="text-gray-500">Marque entradas e saídas dos voluntários.</p>
+    </a>
+
+    <a href="/relatorio.html" class="card text-center hover:bg-blue-50">
+      <h2 class="text-2xl font-semibold text-blue-700 mb-2">📊 Relatórios</h2>
+      <p class="text-gray-500">Gere relatórios detalhados de atividades e presença.</p>
+    </a>
+
+  </div>
+
+  <footer class="mt-12 text-gray-500 text-sm text-center">
+    © 2025 Fraluz - Todos os direitos reservados.
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciar Atividades</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<div class="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-xl mt-10">
+    <h1 class="text-2xl font-bold text-blue-900 mb-6">Gerenciamento de Atividades</h1>
+
+    <div>
+        <a href="/index.html" class="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 mb-4">
+            ⬅ Voltar ao Menu
+        </a>
+    </div>
+
+    <button onclick="abrirModal()"
+            class="mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+        Cadastrar Atividade
+    </button>
+
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-blue-900 text-white">
+                <th class="p-3">Nome</th>
+                <th class="p-3">Início</th>
+                <th class="p-3">Término</th>
+                <th class="p-3 text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody id="tabelaAtividades"></tbody>
+    </table>
+</div>
+
+<!-- Modal Único (Cadastrar / Editar) -->
+<div id="modalAtividade" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <h2 id="modalTitulo" class="text-xl font-bold mb-4"></h2>
+
+        <input type="hidden" id="modalId">
+
+        <div class="mb-4">
+            <label class="block font-semibold text-gray-800">Nome</label>
+            <input id="modalNome" type="text" class="w-full p-2 border rounded mt-1">
+        </div>
+
+        <div class="mb-4">
+            <label class="block font-semibold text-gray-800">Data de Início</label>
+            <input id="modalInicio" type="datetime-local" class="w-full p-2 border rounded mt-1">
+        </div>
+
+        <div class="mb-4">
+            <label class="block font-semibold text-gray-800">Data de Término</label>
+            <input id="modalTermino" type="datetime-local" class="w-full p-2 border rounded mt-1">
+        </div>
+
+        <div class="mb-4">
+            <label class="font-semibold text-gray-800 text-sm mb-2 block">Voluntários Elegíveis</label>
+            <label class="flex items-center gap-2 mb-2 font-semibold text-gray-700 cursor-pointer">
+                <input type="checkbox" id="modalCheckTodos" onclick="toggleSelecionarTodos()">
+                Selecionar todos
+            </label>
+            <div id="modalListaVoluntarios" class="max-h-40 overflow-y-auto border rounded-lg p-2 bg-gray-50 text-sm"></div>
+        </div>
+
+        <div class="flex justify-between mt-6">
+            <button onclick="fecharModal()"
+                    class="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500">
+                Cancelar
+            </button>
+            <button id="modalSalvar" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-900">
+                Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let editMode = false; // true = editar, false = cadastrar
+
+// ============================
+// FUNÇÕES DE MODAL
+// ============================
+async function abrirModal(id = null) {
+    editMode = !!id;
+
+    document.getElementById("modalAtividade").classList.remove("hidden");
+    document.getElementById("modalTitulo").textContent = editMode ? "Editar Atividade" : "Cadastrar Nova Atividade";
+    document.getElementById("modalSalvar").className = editMode
+        ? "px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-900"
+        : "px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-900";
+
+    document.getElementById("modalId").value = id || "";
+    document.getElementById("modalNome").value = "";
+    document.getElementById("modalInicio").value = "";
+    document.getElementById("modalTermino").value = "";
+
+    carregarVoluntarios([]);
+
+    if (editMode) {
+        const resp = await fetch("/api/atividade/listar");
+        const lista = await resp.json();
+        const atividade = lista.find(a => a.id === id);
+
+        document.getElementById("modalNome").value = atividade.nome;
+        document.getElementById("modalInicio").value = atividade.data_inicio.replace("Z", "");
+        document.getElementById("modalTermino").value = atividade.data_termino.replace("Z", "");
+        carregarVoluntarios(atividade.voluntarios_elegiveis);
+    }
+
+    document.getElementById("modalSalvar").onclick = salvarAtividade;
+}
+
+function fecharModal() {
+    document.getElementById("modalAtividade").classList.add("hidden");
+}
+
+async function toggleSelecionarTodos() {
+    const estado = document.getElementById("modalCheckTodos").checked;
+    document.querySelectorAll("#modalListaVoluntarios input[type='checkbox']")
+        .forEach(cb => cb.checked = estado);
+}
+
+// ============================
+// FUNÇÃO VOLUNTÁRIOS
+// ============================
+async function carregarVoluntarios(selecionados = []) {
+    const resp = await fetch("/api/voluntario/listar");
+    const voluntarios = await resp.json();
+    const box = document.getElementById("modalListaVoluntarios");
+
+    box.innerHTML = voluntarios.map(v => `
+        <label class="flex items-center gap-2 p-1">
+            <input type="checkbox" value="${v.codigo}"
+                ${selecionados?.includes(v.codigo) ? "checked" : ""}>
+            ${v.nome}
+        </label>
+    `).join("");
+
+    document.getElementById("modalCheckTodos").checked =
+        voluntarios.length > 0 &&
+        voluntarios.every(v => selecionados.includes(v.codigo));
+}
+
+// ============================
+// FUNÇÃO SALVAR (CADASTRAR / EDITAR)
+// ============================
+async function salvarAtividade() {
+    const id = document.getElementById("modalId").value;
+    const nome = document.getElementById("modalNome").value;
+    const inicio = document.getElementById("modalInicio").value;
+    const termino = document.getElementById("modalTermino").value;
+
+    const voluntarios = Array.from(
+        document.querySelectorAll("#modalListaVoluntarios input[type='checkbox']:checked")
+    ).map(cb => cb.value);
+
+    const body = {
+        nome,
+        data_inicio: inicio,
+        data_termino: termino,
+        voluntarios_elegiveis: `{${voluntarios.join(",")}}`
+    };
+
+    const url = editMode ? `/api/atividade/${id}` : "/api/atividade/cadastrar";
+    const method = editMode ? "PUT" : "POST";
+
+    const resp = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (resp.ok) {
+        fecharModal();
+        carregarAtividades();
+        alert(editMode ? "Alterações salvas com sucesso!" : "Atividade cadastrada com sucesso!");
+    } else {
+        alert("Erro ao salvar atividade.");
+    }
+}
+
+// ============================
+// FUNÇÃO EXCLUIR
+// ============================
+async function excluirAtividade(id) {
+    if (!confirm("Deseja realmente excluir esta atividade?")) return;
+
+    const resp = await fetch(`/api/atividade/${id}`, { method: "DELETE" });
+    if (resp.ok) {
+        alert("Atividade excluída com sucesso!");
+        carregarAtividades();
+    } else {
+        alert("Erro ao excluir atividade.");
+    }
+}
+
+// ============================
+// FUNÇÃO CARREGAR TABELA
+// ============================
+async function carregarAtividades() {
+    const resp = await fetch("/api/atividade/listar");
+    const atividades = await resp.json();
+    const tabela = document.getElementById("tabelaAtividades");
+
+    tabela.innerHTML = atividades.map(a => `
+        <tr class="border-b hover:bg-gray-50">
+            <td class="p-3">${a.nome}</td>
+            <td class="p-3">${new Date(a.data_inicio).toLocaleString()}</td>
+            <td class="p-3">${new Date(a.data_termino).toLocaleString()}</td>
+            <td class="p-3 text-center flex justify-center gap-2">
+                <button onclick="abrirModal(${a.id})" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Editar
+                </button>
+                <button onclick="excluirAtividade(${a.id})" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                    Excluir
+                </button>
+            </td>
+        </tr>
+    `).join("");
+}
+
+// ============================
+// INICIALIZAÇÃO
+// ============================
+carregarAtividades();
+</script>
+
+</body>
+</html>

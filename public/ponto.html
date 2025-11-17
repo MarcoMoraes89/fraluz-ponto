@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Ponto | FRALUZ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #1E3A8A;
+}
+</style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4">
+
+<div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl w-full max-w-lg border border-blue-200 overflow-hidden">
+
+    <!-- CABEÇALHO CORRIGIDO -->
+    <div class="bg-blue-100 pt-12 pb-10 text-center">
+
+        <!-- LOGO 100% visível -->
+        <div class="w-36 h-36 mx-auto rounded-full overflow-hidden shadow-lg border-4 border-white bg-white">
+            <img src="https://i.imgur.com/SXnHQlr.png" 
+                 class="w-full h-full object-contain"
+                 alt="Logo FRALUZ">
+        </div>
+
+        <h1 class="text-3xl font-bold text-blue-900 mt-4">Registro de Ponto</h1>
+    </div>
+
+    <!-- CORPO -->
+    <div class="p-8 text-center">
+
+        <div id="ponto-alert" class="mb-4"></div>
+
+        <p id="nomeVoluntario" class="text-2xl font-semibold text-blue-700 hidden mb-2"></p>
+
+        <img id="fotoVoluntario"
+             class="mx-auto w-48 h-48 rounded-full object-cover hidden shadow-md mb-6 border-4 border-blue-500">
+
+        <input 
+            type="text"
+            id="codigoVoluntario"
+            autofocus
+            class="text-center text-2xl p-4 border-2 border-blue-300 rounded-lg w-full shadow focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Aproxime o crachá"
+            onkeydown="verificaEnter(event)"
+        >
+    </div>
+</div>
+
+
+<script>
+// --- MESMA LÓGICA ---
+const alertBox = document.getElementById('ponto-alert');
+const inputCodigo = document.getElementById('codigoVoluntario');
+const fotoVoluntario = document.getElementById('fotoVoluntario');
+const nomeVoluntario = document.getElementById('nomeVoluntario');
+
+function mostrarMensagem(msg, tipo='success') {
+    const cor = tipo === 'success'
+        ? 'bg-green-200 text-green-800 border-green-400'
+        : 'bg-red-200 text-red-800 border-red-400';
+
+    alertBox.innerHTML = `<div class="p-3 rounded-lg font-semibold border ${cor}">${msg}</div>`;
+}
+
+function limparTela() {
+    alertBox.innerHTML = '';
+    fotoVoluntario.classList.add('hidden');
+    fotoVoluntario.src = '';
+
+    nomeVoluntario.innerText = '';
+    nomeVoluntario.classList.add('hidden');
+
+    inputCodigo.value = '';
+    inputCodigo.focus();
+}
+
+async function verificaEnter(e) {
+    if (e.key !== "Enter") return;
+
+    const codigo = inputCodigo.value.trim();
+    if (!codigo) return;
+
+    const payload = { codigo_voluntario: codigo, tipo: "IN" };
+
+    try {
+        const respVol = await fetch('/api/voluntario/listar');
+        const lista = await respVol.json();
+
+        const vol = lista.find(v => v.codigo == codigo);
+
+        if (vol) {
+            nomeVoluntario.innerText = vol.nome;
+            nomeVoluntario.classList.remove('hidden');
+        }
+
+        if (vol && vol.url_foto) {
+            fotoVoluntario.src = vol.url_foto;
+            fotoVoluntario.classList.remove('hidden');
+        }
+
+        const response = await fetch('/api/ponto/registrar', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            mostrarMensagem("REGISTRADO", "success");
+        } else {
+            mostrarMensagem(data.error || "Erro desconhecido.", "error");
+        }
+
+    } catch (err) {
+        mostrarMensagem("Erro de conexão com o servidor.", "error");
+    }
+
+    setTimeout(limparTela, 3000);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatórios de Horas | FRALUZ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+body { font-family: 'Inter', sans-serif; background-color: #f7fafc; }
+.card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -2px rgba(0,0,0,0.1); }
+input, select { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.375rem; width: 100%; }
+.btn-primary { background-color: #3b82f6; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; transition: background-color 0.2s; }
+.btn-primary:hover { background-color: #2563eb; }
+.error-message { background-color: #fca5a5; color: #7f1d1d; padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; }
+.success-message { background-color: #86efac; color: #166534; padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; }
+</style>
+</head>
+<body class="p-6 md:p-10">
+
+<div class="text-center mb-8">
+<h1 class="text-3xl font-bold text-gray-800 mb-2">Relatórios de Horas de Voluntariado</h1>
+<a href="/index.html" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+← Voltar ao Menu
+</a>
+</div>
+
+<div class="flex flex-col max-w-6xl mx-auto gap-6">
+
+<!-- FILTROS -->
+<div class="card p-6">
+<h2 class="text-xl font-semibold mb-4 text-blue-700 border-b pb-2">Filtros</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+        <label for="filterCodigo">Código do Voluntário:</label>
+        <input type="text" id="filterCodigo" placeholder="Ex: 3799">
+    </div>
+    <div>
+        <label for="filterDataInicio">Data Início:</label>
+        <input type="date" id="filterDataInicio">
+    </div>
+    <div>
+        <label for="filterDataFim">Data Fim:</label>
+        <input type="date" id="filterDataFim">
+    </div>
+</div>
+<button onclick="consultarRelatorio()" class="mt-4 btn-primary font-bold w-full md:w-auto">Consultar</button>
+<div id="relatorio-alert-area" class="mt-4"></div>
+</div>
+
+<!-- RESULTADOS -->
+<div class="card p-6">
+<h2 class="text-xl font-semibold mb-4 text-blue-700 border-b pb-2">Resultados</h2>
+<div id="relatorio-lista">
+<p class="text-gray-500">Nenhuma consulta realizada.</p>
+</div>
+</div>
+
+<script>
+const relatorioAlertArea = document.getElementById('relatorio-alert-area');
+const relatorioListaDiv = document.getElementById('relatorio-lista');
+
+function showAlert(message, type='error') {
+    const className = type==='success' ? 'success-message' : 'error-message';
+    relatorioAlertArea.innerHTML = `<div class="${className}">${message}</div>`;
+}
+
+async function consultarRelatorio() {
+    relatorioAlertArea.innerHTML = '';
+    relatorioListaDiv.innerHTML = '<p class="text-gray-500">Carregando...</p>';
+
+    const codigo_voluntario = document.getElementById('filterCodigo').value.trim();
+    const data_inicio = document.getElementById('filterDataInicio').value;
+    const data_fim = document.getElementById('filterDataFim').value;
+
+    try {
+        const params = new URLSearchParams();
+        if (codigo_voluntario) params.append('codigo_voluntario', codigo_voluntario);
+        if (data_inicio) params.append('data_inicio', data_inicio);
+        if (data_fim) params.append('data_fim', data_fim);
+
+        const response = await fetch('/api/ponto/listar?' + params.toString());
+        if (!response.ok) throw new Error('Falha na comunicação com a API.');
+
+        const registros = await response.json();
+
+        if (registros.length === 0) {
+            relatorioListaDiv.innerHTML = '<p class="text-gray-500">Nenhum registro encontrado.</p>';
+            return;
+        }
+
+        const listaHTML = registros.map(r => `
+            <div class="p-3 border-b border-gray-200 last:border-b-0 flex justify-between">
+                <span>${r.codigo_voluntario} - ${r.tipo}</span>
+                <span class="text-sm text-gray-500">${r.data_hora}</span>
+            </div>
+        `).join('');
+
+        relatorioListaDiv.innerHTML = `<div class="divide-y divide-gray-100 border border-gray-200 rounded-lg">${listaHTML}</div>`;
+
+    } catch (err) {
+        relatorioListaDiv.innerHTML = `<p class="error-message">Erro ao carregar: ${err.message}</p>`;
+        console.error(err);
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!-- public/cursos.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Cursos | Fraluz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { font-family: 'Inter', sans-serif; background-color: #f0f6ff; }
+.card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.section-title { font-size: 1.25rem; font-weight: 600; border-bottom: 2px solid #3b82f6; padding-bottom: 0.25rem; margin-bottom: 1rem; color: #1e3a8a; }
+input, select, textarea { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.375rem; width: 100%; }
+.btn-primary { transition: all 0.2s; cursor: pointer; }
+.hidden { display: none; }
+</style>
+</head>
+<body class="p-6 md:p-10">
+
+<div class="max-w-6xl mx-auto space-y-8">
+
+  <!-- Cabeçalho -->
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-3xl font-bold text-gray-800">Gestão de Cursos</h1>
+    <a href="/index.html" class="btn-primary bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">← Voltar ao Menu</a>
+  </div>
+
+  <!-- CADASTRO DE CURSO -->
+  <div class="card p-6">
+    <h2 class="section-title">Cadastrar / Editar Curso</h2>
+    <div class="space-y-4">
+      <input type="hidden" id="cursoId">
+      <div>
+        <label for="nomeCurso" class="font-semibold">Nome do Curso:</label>
+        <input type="text" id="nomeCurso" placeholder="Ex: Curso de Ateliê">
+      </div>
+      <div>
+        <label for="descricaoCurso" class="font-semibold">Descrição (opcional):</label>
+        <textarea id="descricaoCurso" placeholder="Descrição do curso" rows="3"></textarea>
+      </div>
+      <div>
+        <label for="voluntariosCurso" class="font-semibold">Voluntários:</label>
+        <select id="voluntariosCurso" multiple></select>
+      </div>
+      <button id="btnSalvarCurso" class="btn-primary bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Cadastrar Curso</button>
+      <div id="alertCurso" class="mt-2"></div>
+    </div>
+  </div>
+
+  <!-- LISTA DE CURSOS -->
+  <div class="card p-6">
+    <h2 class="section-title">Cursos Cadastrados</h2>
+    <div id="listaCursos">
+      <p>Carregando cursos...</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const alertCurso = document.getElementById('alertCurso');
+const listaCursosDiv = document.getElementById('listaCursos');
+const voluntariosSelect = document.getElementById('voluntariosCurso');
+const btnSalvarCurso = document.getElementById('btnSalvarCurso');
+const cursoIdInput = document.getElementById('cursoId');
+
+function showAlert(msg, type='success') {
+    alertCurso.innerHTML = `<div class="${type==='success' ? 'bg-green-100 text-green-700 p-2 rounded' : 'bg-red-100 text-red-700 p-2 rounded'}">${msg}</div>`;
+}
+
+// Carregar voluntários no select
+async function carregarVoluntarios() {
+    try {
+        const res = await fetch('/api/voluntario/listar');
+        const voluntarios = await res.json();
+        voluntariosSelect.innerHTML = '';
+        voluntarios.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.codigo;
+            opt.textContent = `${v.nome} (${v.codigo})`;
+            voluntariosSelect.appendChild(opt);
+        });
+    } catch(err) {
+        console.error(err);
+        showAlert('Erro ao carregar voluntários', 'error');
+    }
+}
+
+// Listar cursos
+async function listarCursos() {
+    listaCursosDiv.innerHTML = '<p>Carregando cursos...</p>';
+    try {
+        const res = await fetch('/api/curso/listar');
+        const cursos = await res.json();
+        if(cursos.length === 0) {
+            listaCursosDiv.innerHTML = '<p>Nenhum curso registrado.</p>';
+            return;
+        }
+        listaCursosDiv.innerHTML = cursos.map(c => `
+            <div class="p-2 border-b border-gray-200 last:border-b-0">
+                <p class="font-semibold">${c.nome}</p>
+                <p class="text-sm text-gray-500">${c.descricao || '-'}</p>
+                <p class="text-sm text-gray-500">Voluntários: ${(c.voluntarios_participantes || []).join(', ') || '-'}</p>
+                <button class="btn-primary bg-yellow-400 text-white px-2 py-1 mt-1 rounded hover:bg-yellow-500"
+                        onclick="editarCurso(${c.id})">Editar</button>
+                <button class="btn-primary bg-red-500 text-white px-2 py-1 mt-1 rounded hover:bg-red-600"
+                        onclick="excluirCurso(${c.id})">Excluir</button>
+            </div>
+        `).join('');
+    } catch(err) {
+        console.error(err);
+        listaCursosDiv.innerHTML = '<p class="text-red-600">Erro ao carregar cursos</p>';
+    }
+}
+
+// Cadastrar ou salvar curso
+btnSalvarCurso.onclick = async () => {
+    const nome = document.getElementById('nomeCurso').value.trim();
+    const descricao = document.getElementById('descricaoCurso').value.trim();
+    const voluntarios = Array.from(voluntariosSelect.selectedOptions).map(o => o.value);
+
+    if(!nome) { showAlert('O nome do curso é obrigatório', 'error'); return; }
+
+    const cursoId = cursoIdInput.value;
+    const metodo = cursoId ? 'PUT' : 'POST';
+    const url = cursoId ? `/api/curso/${cursoId}` : '/api/curso/cadastrar';
+
+    try {
+        const res = await fetch(url, {
+            method: metodo,
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ nome, descricao, voluntarios })
+        });
+
+        const data = await res.json();
+
+        if(data.success || res.ok) {
+            showAlert(cursoId ? 'Curso atualizado com sucesso!' : 'Curso cadastrado com sucesso!');
+            cursoIdInput.value = '';
+            document.getElementById('nomeCurso').value = '';
+            document.getElementById('descricaoCurso').value = '';
+            voluntariosSelect.selectedIndex = -1;
+            btnSalvarCurso.textContent = 'Cadastrar Curso';
+            listarCursos();
+        } else {
+            showAlert(data.error || 'Erro ao salvar curso', 'error');
+        }
+    } catch(err) {
+        console.error(err);
+        showAlert('Erro de conexão', 'error');
+    }
+}
+
+// Excluir curso
+async function excluirCurso(id) {
+    if(!confirm('Deseja realmente excluir este curso?')) return;
+    try {
+        const res = await fetch(`/api/curso/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.success) listarCursos();
+        else showAlert('Erro ao excluir curso', 'error');
+    } catch(err) {
+        console.error(err);
+        showAlert('Erro de conexão', 'error');
+    }
+}
+
+// Editar curso
+async function editarCurso(id) {
+    try {
+        const res = await fetch(`/api/curso/listar`);
+        const cursos = await res.json();
+        const curso = cursos.find(c => c.id === id);
+        if(!curso) return showAlert('Curso não encontrado', 'error');
+
+        cursoIdInput.value = curso.id;
+        document.getElementById('nomeCurso').value = curso.nome;
+        document.getElementById('descricaoCurso').value = curso.descricao || '';
+        
+        // Selecionar voluntários
+        Array.from(voluntariosSelect.options).forEach(opt => {
+            opt.selected = (curso.voluntarios_participantes || []).includes(opt.value);
+        });
+
+        btnSalvarCurso.textContent = 'Salvar Alterações';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch(err) {
+        console.error(err);
+        showAlert('Erro ao carregar curso para edição', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarVoluntarios();
+    listarCursos();
+});
+</script>
+</body>
+</html>

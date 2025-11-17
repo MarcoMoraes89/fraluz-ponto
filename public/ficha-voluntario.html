@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ficha do Voluntário | Fraluz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body { font-family: 'Inter', sans-serif; background-color: #f0f6ff; }
+.card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.section-title { font-size: 1.25rem; font-weight: 600; border-bottom: 2px solid #3b82f6; padding-bottom: 0.25rem; margin-bottom: 1rem; color: #1e3a8a; }
+input, textarea { border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 0.375rem; width: 100%; }
+.btn-primary { transition: all 0.2s; cursor: pointer; }
+.hidden { display: none; }
+</style>
+</head>
+
+<body class="p-6 md:p-10">
+<div class="max-w-6xl mx-auto space-y-8">
+
+  <!-- BOTÃO VOLTAR -->
+  <div>
+    <a href="/index.html" class="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+      ⬅ Voltar ao Menu
+    </a>
+  </div>
+
+  <!-- CARD PRINCIPAL -->
+  <div class="card p-6 flex flex-col md:flex-row gap-6 items-center">
+    <div class="flex-shrink-0">
+      <img id="fotoVoluntario" src="https://placehold.co/150x150/cccccc/333333?text=Foto" 
+           class="w-36 h-36 object-cover rounded-full border-2 border-blue-500 mb-2">
+      <input type="text" id="urlFotoVoluntario" placeholder="Link da Foto" class="hidden mt-2 text-sm">
+    </div>
+
+    <!-- DADOS -->
+    <div class="flex-1 space-y-3">
+      <input type="text" id="nomeVoluntario" class="text-2xl font-bold hidden w-full">
+      <h2 id="nomeVoluntarioView" class="text-2xl font-bold text-gray-800"></h2>
+
+      <p>
+        <strong>Código:</strong> 
+        <span id="codigoVoluntarioView"></span>
+        <input type="text" id="codigoVoluntario" class="hidden mt-1 w-full">
+      </p>
+
+      <p>
+        <strong>Telefone:</strong> 
+        <span id="telefoneVoluntarioView"></span>
+        <input type="text" id="telefoneVoluntario" class="hidden mt-1 w-full">
+      </p>
+
+      <p>
+        <strong>Endereço:</strong> 
+        <span id="enderecoVoluntarioView"></span>
+        <input type="text" id="enderecoVoluntario" class="hidden mt-1 w-full">
+      </p>
+
+      <p>
+        <strong>Data de Nascimento:</strong> 
+        <span id="nascimentoVoluntarioView"></span>
+        <input type="date" id="nascimentoVoluntario" class="hidden mt-1 w-full">
+      </p>
+
+      <p>
+        <strong>Aptidões:</strong> 
+        <span id="aptidoesVoluntarioView"></span>
+        <input type="text" id="aptidoesVoluntario" placeholder="Separadas por vírgula" class="hidden mt-1 w-full">
+      </p>
+    </div>
+  </div>
+
+  <!-- ATIVIDADES -->
+  <div class="card p-6">
+    <h3 class="section-title">Atividades</h3>
+    <div id="atividadesVoluntario">
+      <p>Carregando atividades...</p>
+    </div>
+  </div>
+
+  <!-- CURSOS -->
+  <div class="card p-6">
+    <h3 class="section-title">Cursos</h3>
+    <div id="cursosVoluntario">
+      <p>Carregando cursos...</p>
+    </div>
+  </div>
+
+  <!-- AÇÕES -->
+  <div class="flex gap-4 justify-end">
+    <button id="btnEditar" class="btn-primary bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Editar</button>
+    <button id="btnSalvar" class="btn-primary bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 hidden">Salvar</button>
+    <button id="btnCancelar" class="btn-primary bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 hidden">Cancelar</button>
+    <button id="btnExcluir" class="btn-primary bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Excluir</button>
+  </div>
+
+</div>
+
+<script>
+// ================================
+// PEGAR CÓDIGO PELA URL
+// ================================
+const urlParams = new URLSearchParams(window.location.search);
+const codigoVoluntarioSelecionado = urlParams.get("codigo");
+
+if (!codigoVoluntarioSelecionado) {
+    alert("Nenhum código de voluntário informado.");
+}
+
+// ================================
+// CARREGAR FICHA
+// ================================
+async function carregarFicha(codigo) {
+    try {
+        const resVol = await fetch(`/api/voluntario/${codigo}`);
+        const voluntario = await resVol.json();
+
+        // Preencher dados
+        document.getElementById("fotoVoluntario").src = voluntario.url_foto || "https://placehold.co/150x150/cccccc/333333?text=Foto";
+        document.getElementById("urlFotoVoluntario").value = voluntario.url_foto || "";
+
+        document.getElementById("nomeVoluntarioView").innerText = voluntario.nome;
+        document.getElementById("nomeVoluntario").value = voluntario.nome;
+
+        document.getElementById("codigoVoluntarioView").innerText = voluntario.codigo;
+        document.getElementById("codigoVoluntario").value = voluntario.codigo;
+
+        document.getElementById("telefoneVoluntarioView").innerText = voluntario.telefone || "-";
+        document.getElementById("telefoneVoluntario").value = voluntario.telefone || "";
+
+        document.getElementById("enderecoVoluntarioView").innerText = voluntario.endereco || "-";
+        document.getElementById("enderecoVoluntario").value = voluntario.endereco || "";
+
+        document.getElementById("nascimentoVoluntarioView").innerText = voluntario.nascimento || "-";
+        document.getElementById("nascimentoVoluntario").value = voluntario.nascimento || "";
+
+        document.getElementById("aptidoesVoluntarioView").innerText =
+            voluntario.aptidoes ? voluntario.aptidoes.join(", ") : "-";
+
+        document.getElementById("aptidoesVoluntario").value =
+            voluntario.aptidoes ? voluntario.aptidoes.join(", ") : "";
+
+        // Atividades
+        const resAtv = await fetch(`/api/atividade/voluntario/${codigo}`);
+        const atividades = await resAtv.json();
+        document.getElementById("atividadesVoluntario").innerHTML =
+            atividades.length
+                ? atividades.map(a => `
+                    <div class="p-2 border-b last:border-none">
+                      <p class="font-semibold">${a.nome}</p>
+                      <p class="text-sm text-gray-500">De: ${new Date(a.data_inicio).toLocaleDateString()}  
+                       Até: ${new Date(a.data_termino).toLocaleDateString()}</p>
+                    </div>
+                `).join("")
+                : "<p>Nenhuma atividade registrada.</p>";
+
+        // Cursos
+        const resCursos = await fetch(`/api/cursos/voluntario/${codigo}`);
+        const cursos = await resCursos.json();
+        document.getElementById("cursosVoluntario").innerHTML =
+            cursos.length
+                ? cursos.map(c => `
+                    <div class="p-2 border-b last:border-none">
+                      <p class="font-semibold">${c.nome}</p>
+                      <p class="text-sm text-gray-500">Frequência: ${c.frequencia}</p>
+                    </div>
+                `).join("")
+                : "<p>Nenhum curso registrado.</p>";
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao carregar voluntário.");
+    }
+}
+
+// ================================
+// BOTÕES
+// ================================
+document.getElementById("btnEditar").onclick = () => toggleEdicao(true);
+
+document.getElementById("btnCancelar").onclick = () => {
+    toggleEdicao(false);
+    carregarFicha(codigoVoluntarioSelecionado);
+};
+
+document.getElementById("btnSalvar").onclick = async () => {
+    const dados = {
+        codigo_novo: document.getElementById("codigoVoluntario").value,
+        nome: document.getElementById("nomeVoluntario").value,
+        url_foto: document.getElementById("urlFotoVoluntario").value,
+        telefone: document.getElementById("telefoneVoluntario").value,
+        endereco: document.getElementById("enderecoVoluntario").value,
+        nascimento: document.getElementById("nascimentoVoluntario").value,
+        aptidoes: document.getElementById("aptidoesVoluntario").value.split(",").map(a => a.trim())
+    };
+
+    const res = await fetch(`/api/voluntario/${codigoVoluntarioSelecionado}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+    });
+
+    const data = await res.json();
+    if (data.success) {
+        alert("Voluntário atualizado com sucesso!");
+        toggleEdicao(false);
+        carregarFicha(dados.codigo_novo || codigoVoluntarioSelecionado);
+    } else {
+        alert("Erro ao salvar.");
+    }
+};
+
+document.getElementById("btnExcluir").onclick = async () => {
+    if (!confirm("Tem certeza que deseja excluir?")) return;
+
+    const res = await fetch(`/api/voluntario/${codigoVoluntarioSelecionado}`, {
+        method: "DELETE"
+    });
+
+    const data = await res.json();
+    if (data.success) {
+        alert("Voluntário excluído.");
+        window.location.href = "/cadastro.html";
+    }
+};
+
+function toggleEdicao(editando) {
+    document.getElementById("nomeVoluntarioView").classList.toggle("hidden", editando);
+    document.getElementById("nomeVoluntario").classList.toggle("hidden", !editando);
+
+    ["telefoneVoluntario", "enderecoVoluntario", "nascimentoVoluntario", "aptidoesVoluntario", "urlFotoVoluntario", "codigoVoluntario"]
+        .forEach(id => document.getElementById(id).classList.toggle("hidden", !editando));
+
+    ["telefoneVoluntarioView", "enderecoVoluntarioView", "nascimentoVoluntarioView", "aptidoesVoluntarioView", "codigoVoluntarioView"]
+        .forEach(id => document.getElementById(id).classList.toggle("hidden", editando));
+
+    document.getElementById("btnEditar").classList.toggle("hidden", editando);
+    document.getElementById("btnSalvar").classList.toggle("hidden", !editando);
+    document.getElementById("btnCancelar").classList.toggle("hidden", !editando);
+}
+
+document.addEventListener("DOMContentLoaded", () => carregarFicha(codigoVoluntarioSelecionado));
+</script>
+
+</body>
+</html>
